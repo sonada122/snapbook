@@ -125,8 +125,8 @@ export default function App() {
       const { added, skipped } = mergeResult(data)
       refresh()
       setImage(null)
-      const incomeCount = result.transactions.filter(t => t.type === 'income').length
-      const expenseCount = result.transactions.filter(t => t.type === 'expense').length
+      const incomeCount = data.transactions.filter(t => t.type === 'income').length
+      const expenseCount = data.transactions.filter(t => t.type === 'expense').length
       if (added > 0) {
         const parts = []
         if (expenseCount > 0) parts.push(`${expenseCount} 条支出`)
@@ -187,7 +187,7 @@ export default function App() {
         </div>
       </header>
 
-      {showSettings && <SettingsPanel config={config} setConfig={setConfig} onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsPanel config={config} setConfig={setConfig} onClose={() => { setShowSettings(false); setError(null) }} />}
 
       {/* 上传区域 */}
       <div className={`upload-zone compact ${image ? 'has-image' : ''} ${uploading ? 'disabled' : ''}`}
@@ -197,6 +197,7 @@ export default function App() {
           : <div className="upload-placeholder compact"><span className="upload-icon-sm">📷</span><span>点击上传消费截图</span></div>}
         {uploading && <div className="upload-overlay"><div className="spinner" /><span>识别中…</span></div>}
         <input ref={fileRef} type="file" accept="image/*" className="hidden-input" title="选择截图"
+          onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
           onChange={(e) => {
             const f = e.target.files?.[0]
             if (!f) return
