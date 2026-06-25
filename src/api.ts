@@ -8,21 +8,28 @@ export interface Transaction {
   amount: number
   category: string
   date: string
+  type: 'expense' | 'income'
   note?: string
 }
 
 export interface AnalysisResult {
   transactions: Transaction[]
-  summary: Record<string, number>
+  expenseSummary: Record<string, number>
+  incomeSummary: Record<string, number>
   totalExpense: number
+  totalIncome: number
   screenshotSource?: string
   remark?: string
 }
 
-const SYSTEM_PROMPT = `你是一个记账助手。用户会上传一张消费记录截图（可能是微信、支付宝、银行App的账单页面），请：
+const SYSTEM_PROMPT = `你是一个记账助手。用户会上传一张账单截图（可能是微信、支付宝、银行App的交易记录页面），请同时识别支出和收入：
 
-1. 识别截图中所有的消费/支出记录
-2. 对每条记录自动归类到以下分类：
+1. 识别截图中所有的交易记录，每条必须标注 type：
+   - "expense" = 支出（消费、付款、转账给别人等）
+   - "income" = 收入（收款、工资、退款、红包收入、转账收钱等）
+
+2. 对每条记录自动归类：
+   支出分类：
    - 🍜 餐饮 (吃饭、外卖、奶茶、零食等)
    - 🚗 交通 (打车、地铁、公交、加油、停车等)
    - 🛒 购物 (日用品、衣服、数码、网购等)
@@ -32,36 +39,58 @@ const SYSTEM_PROMPT = `你是一个记账助手。用户会上传一张消费记
    - 📚 教育 (书籍、课程、培训等)
    - 💬 通讯 (话费、宽带等)
    - 🎁 人情 (红包、礼物、聚餐AA等)
-   - 📦 其他 (无法归类的)
+   - 📦 其他 (无法归类的支出)
 
-3. 汇总各类别的总金额
+   收入分类：
+   - 💰 工资
+   - 🎁 红包 (收到的红包、转账等)
+   - 💸 退款 (购物退款、退押金等)
+   - 🔄 报销
+   - 📈 理财 (利息、投资收益等)
+   - 📦 其他收入
+
+3. 分别汇总支出和收入各类别的总金额
 
 请严格按以下JSON格式返回（不要加markdown代码块标记）：
 
 {
   "transactions": [
     {
-      "merchant": "商户名称",
+      "merchant": "商户名称或对方昵称",
       "amount": 12.34,
+      "type": "expense",
       "category": "🍜 餐饮",
       "date": "2024-01-15",
-      "note": "从截图中提取的补充信息"
+      "note": "补充信息"
+    },
+    {
+      "merchant": "张三",
+      "amount": 500.00,
+      "type": "income",
+      "category": "🎁 红包",
+      "date": "2024-01-15",
+      "note": "微信转账"
     }
   ],
-  "summary": {
+  "expenseSummary": {
     "🍜 餐饮": 100.00,
     "🚗 交通": 50.00
   },
+  "incomeSummary": {
+    "🎁 红包": 500.00
+  },
   "totalExpense": 150.00,
+  "totalIncome": 500.00,
   "screenshotSource": "微信支付/支付宝/银行App/其他",
   "remark": "对这张账单的整体备注"
 }
 
 注意：
 - amount必须是数字类型
+- type必须是 "expense" 或 "income"
 - 如果没有日期信息，date填空字符串
-- 忽略截图中的收入/退款记录，只关注支出
-- 如果无法识别消费记录，返回空transactions数组`
+- 支出和收入都要识别，不要遗漏
+- 如果无法识别任何记录，返回空transactions数组`
 
 export async function analyzeScreenshot(
   imageBase64: string,
@@ -90,7 +119,7 @@ export async function analyzeScreenshot(
             },
             {
               type: 'text',
-              text: '请识别这张消费记录截图，提取所有支出并分类。',
+              text: '请识别这张账单截图，提取所有支出和收入记录并分类。',
             },
           ],
         },

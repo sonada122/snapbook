@@ -44,7 +44,7 @@ export function mergeResult(result: AnalysisResult): { added: number; skipped: n
       ...t,
       id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       createdAt: new Date().toISOString(),
-      type: 'expense' as TxType,  // 截图识别的都是支出
+      type: (t.type === 'income' ? 'income' : 'expense') as TxType,
       amount: typeof t.amount === 'number' ? t.amount : parseFloat(t.amount as any) || 0,
     }))
 

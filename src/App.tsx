@@ -124,8 +124,15 @@ export default function App() {
       })
       const { added, skipped } = mergeResult(data)
       refresh()
-      setImage(null)  // 上传成功后清掉截图预览
-      if (added > 0) setUploadMsg(`✅ 新增 ${added} 条支出${skipped > 0 ? `，跳过 ${skipped} 条重复` : ''}`)
+      setImage(null)
+      const incomeCount = result.transactions.filter(t => t.type === 'income').length
+      const expenseCount = result.transactions.filter(t => t.type === 'expense').length
+      if (added > 0) {
+        const parts = []
+        if (expenseCount > 0) parts.push(`${expenseCount} 条支出`)
+        if (incomeCount > 0) parts.push(`${incomeCount} 条收入`)
+        setUploadMsg(`✅ 新增 ${parts.join(' + ')}${skipped > 0 ? `，跳过 ${skipped} 条重复` : ''}`)
+      }
       else if (skipped > 0) setUploadMsg(`⏭ 全部 ${skipped} 条已存在`)
       else setUploadMsg('⚠️ 未识别到消费记录')
     } catch (err: any) { setError(err.message || '未知错误'); setImage(null) }
